@@ -1,0 +1,129 @@
+---
+title: "Splines in R"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# What is a Spline?
+
+Wikipedia:   <https://en.wikipedia.org/wiki/Flat_spline>
+
+#### examples of splines in physical use 
+
+<https://duckduckgo.com/?t=ffab&q=spline+boatbuilding&iax=images&ia=images>
+
+#### Mathematics of splines
+<https://en.wikipedia.org/wiki/Spline_(mathematics)>
+
+<https://towardsdatascience.com/unraveling-spline-regression-in-r-937626bc3d96>
+
+#### Splines in R    Packages:  splines, splines2
+
+*  B-splines  
+*  M-splines  
+*  I-splines  
+*  convex splines (C-splines)  
+[Wikipedia]
+<https://www.rdocumentation.org/packages/splines2/versions/0.4.5>
+
+
+# Let's do this ourselves
+
+#### First create some data
+
+```{r}
+suppressPackageStartupMessages(library(tidyverse))
+library(splines)
+library(splines2)
+library(cowplot)
+
+dat <- tibble(x = c(0.0, 2, 5, 10, 20,25, 30,40, 60,80),
+              y = c(0.0, 0.05,0.1, 0.3, 5, 10, 20,30, 32, 33))
+plot(dat)
+
+```
+
+#### fit a spline function using **knots**
+```{r}
+# spline degree
+degree = 3
+# knots
+knots <- c(10, 30)
+
+bSpline(dat$x, knots = knots, degr=degree)
+```
+#### fit a spline function using **degrees of freedom**
+```{r}
+# degrees of freedom
+df = 3
+
+# spline degree
+degr = 3         # cubic spline
+
+bSpline(dat$x, df=df, degr=degr)
+```
+
+
+## curve fitting using splines
+
+```{r}
+fitmodel <- function(df, degr, dat){
+   #main curve fit
+   fit <- lm(y ~ bSpline(x, df=df, degr=degr), data=dat)
+   fit
+}
+
+
+fit <- fitmodel(df=4, degr = 3, dat)  
+summary(fit)
+```
+
+
+```{r}
+dat$pred <- fit$fitted.values  
+dat$resid <- fit$residuals  
+dat 
+```
+
+# plotit
+```{r}
+plotit <- function(dat){
+   ggplot(dat) +
+      geom_line(aes(x, pred), colour = "gray50") +
+      geom_col(aes(x, resid), colour = "red", width=0.3) +
+      geom_hline(aes(yintercept=0), colour="brown") +
+      geom_point(aes(x, y), colour = "blue", size = 3) 
+   
+}
+
+fit <- fitmodel(df=4, degr = 3, dat)  
+p <- plotit(dat)
+p
+```
+
+
+## first derivative
+```{r}
+# 1st derivative
+first.deriv <- lm(y ~ bSpline(x, df=df, degr=degr, derivs=1L), data=dat)
+
+dat$firstD <- first.deriv$fitted.values
+
+p <- p + geom_line(data = dat, aes(x, firstD), color = "green")
+p
+```
+
+## second derivative
+```{r}
+# 1st derivative
+second.deriv <- lm(y ~ bSpline(x, df=df, degr=degr, derivs=2L), data=dat)
+
+# dat$secondD <- second.deriv$fitted.values
+
+# p <- p + geom_line(data = dat, aes(x, secondD), color = "darkgreen")
+# p
+```
+
